@@ -1,5 +1,6 @@
 package net.fabricmc.example;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,11 @@ public class ExampleMod implements ModInitializer {
 		// However, some things (like resources) may still be uninitialized.
 		// Proceed with mild caution.
 
-		LOGGER.info("Hello Fabric world!");
+		// TOO EARLY NO WINDOW
+
+		/*if(!GameStreamSystem.INSTANCE.checkInitStarted()){
+			GameStreamSystem.INSTANCE.init();
+		}*/
+
 	}
 }

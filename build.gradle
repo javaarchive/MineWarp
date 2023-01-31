@@ -31,6 +31,18 @@ dependencies {
 	// These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
 
 	// modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
+
+	// broadcast deps
+	// https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/build.gradle
+	implementation 'net.java.dev.jna:jna:5.10.0'
+	implementation 'net.java.dev.jna:jna-platform:5.10.0'
+	implementation 'org.freedesktop.gstreamer:gst1-java-core:1.4.0'
+
+	implementation 'org.asynchttpclient:async-http-client:2.12.3'
+	implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
+	implementation 'org.slf4j:slf4j-jdk14:1.7.30'
+
+	implementation 'io.socket:socket.io-client:2.1.0'
 }
 
 processResources {
