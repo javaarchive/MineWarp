@@ -65,6 +65,10 @@ java {
 	withSourcesJar()
 }
 
+runClient {
+    environment "MW_REMOTE_URL", "http://10.0.0.30:7331"
+}
+
 jar {
 	from("LICENSE") {
 		rename { "${it}_${project.archivesBaseName}"}
