@@ -48,7 +48,7 @@ public class GameStreamSystem implements Pad.PROBE {
 
     public String getConf(String key, String defaultValue){
         String val = System.getenv(key);
-        if(val == null) return defaultValue;
+        if(val == null) return System.getProperty("mw.config." + key,defaultValue);
         return val;
     }
 
