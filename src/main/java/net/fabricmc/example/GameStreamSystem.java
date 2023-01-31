@@ -179,7 +179,6 @@ public class GameStreamSystem implements Pad.PROBE {
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
                 "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
-                "queue ! application/x-rtp,media=video,encoding-name=VP8,payload=97 ! " +
                 "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
 
         pipeline.getElements().forEach(el -> System.out.println("Found el " + el.getName() + " " + el.getTypeName()));
@@ -188,6 +187,8 @@ public class GameStreamSystem implements Pad.PROBE {
         identity.getStaticPad("sink").addProbe(PadProbeType.BUFFER, this);
 
         webRTCBin = (WebRTCBin) pipeline.getElementByName("webrtcbin");
+
+        webRTCBin.connect(onNegotiationNeeded);
 
         // at this point I have no idea what exactly happens
         System.out.println("Attaching to pipeline messages");
@@ -201,23 +202,68 @@ public class GameStreamSystem implements Pad.PROBE {
 
         if(this.socket == null) this.initSocket();
 
-        initalized = true;
-    }
-
-    public void start(){
-        if(pipeline.isPlaying()) return;
-        System.out.println("Playing pipeline");
-        pipeline.play();
         System.out.println("Run GST Main");
         // pops up new window and waits so we run i nthread
-        Thread t = new Thread(new Runnable() {
+        /*Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 Gst.main();
             }
-        });
+        });*/
 
-        t.start();
+        // t.start();
+
+        pipeline.play();
+
+        initalized = true;
+    }
+
+    // https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/src/main/java/org/freedesktop/gstreamer/examples/WebRTCSendRecv.java
+    private final WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
+        webRTCBin.createOffer(offer -> {
+            webRTCBin.setLocalDescription(offer);
+            JSONObject obj = new JSONObject();
+
+            try {
+                obj.put("type", "offer");
+                obj.put("sdp", offer.getSDPMessage().toString());
+                obj.put("origin", "server");
+                obj.put("offer", offer.getSDPMessage().toString());
+                this.socket.emit("roomBroadcast", obj);
+            } catch (JSONException e) {
+                System.out.println("Couldn't make offer json?");
+                throw new RuntimeException(e);
+            }
+
+        });
+    };
+
+    private final WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
+        try {
+            JSONObject obj = new JSONObject();
+            obj.put("type", "offer");
+            obj.put("slpMLineIndex", sdpMLineIndex);
+            obj.put("candidate", candidate);
+            obj.put("origin", "server");
+            this.socket.emit("roomBroadcast", obj);
+        } catch (JSONException e) {
+            System.out.println("Couldn't make ice json?");
+            throw new RuntimeException(e);
+        }
+    };
+
+    public void debug(){
+        System.out.println("WRTC " + webRTCBin.getConnectionState());
+    }
+
+    public void start(){
+        if(pipeline.isPlaying()) {
+            debug();
+            return;
+        }
+        System.out.println("Playing pipeline");
+
+
     }
 
     public void capture(){
