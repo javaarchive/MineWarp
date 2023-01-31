@@ -98,7 +98,9 @@ public class GameStreamSystem implements Pad.PROBE {
         try {
             GameStreamSystem gss = this;
             System.out.println("Initializing socket for remote");
-            this.socket = IO.socket(getConf("MW_REMOTE_URI", "http://127.0.0.1:7331"));
+            String CONN_URL = "http://127.0.0.1:7331";
+            System.out.println("Connecting to " + CONN_URL);
+            this.socket = IO.socket(getConf("MW_REMOTE_URI", CONN_URL));
             this.socket.on("hello", new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
