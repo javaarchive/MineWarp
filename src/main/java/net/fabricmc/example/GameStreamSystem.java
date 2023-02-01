@@ -83,7 +83,11 @@ public class GameStreamSystem implements Pad.PROBE {
         SDPMessage sdpMsg = new SDPMessage();
         sdpMsg.parseBuffer(sdp);
         WebRTCSessionDescription desc = new WebRTCSessionDescription(WebRTCSDPType.ANSWER, sdpMsg);
+        System.out.println("Setting remote description");
         webRTCBin.setRemoteDescription(desc);
+        // Create offer
+        System.out.println("Creating answer");
+        webRTCBin.createAnswer(this.onCreateAnswer);
     }
 
     public void processIce(JSONObject message) throws JSONException {
@@ -218,8 +222,23 @@ public class GameStreamSystem implements Pad.PROBE {
         initalized = true;
     }
 
+    private WebRTCBin.CREATE_ANSWER onCreateAnswer = answer -> {
+        JSONObject obj = new JSONObject();
+
+        try {
+            obj.put("type", "offer_answer");
+            obj.put("sdp",  answer.getSDPMessage().toString());
+            obj.put("origin", "server");
+            obj.put("offer", answer.getSDPMessage().toString());
+            this.socket.emit("roomBroadcast", obj);
+        } catch (JSONException e) {
+            System.out.println("Couldn't make offer json?");
+            throw new RuntimeException(e);
+        }
+    };
+
     // https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/src/main/java/org/freedesktop/gstreamer/examples/WebRTCSendRecv.java
-    private final WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
+    private WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
         webRTCBin.createOffer(offer -> {
             webRTCBin.setLocalDescription(offer);
             JSONObject obj = new JSONObject();
@@ -238,7 +257,7 @@ public class GameStreamSystem implements Pad.PROBE {
         });
     };
 
-    private final WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
+    private WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
         try {
             JSONObject obj = new JSONObject();
             obj.put("type", "offer");
