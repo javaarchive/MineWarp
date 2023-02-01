@@ -213,9 +213,9 @@ public class GameStreamSystem implements Pad.PROBE {
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
                 "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
-                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun1.l.google.com:19302");
+                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://relay.metered.ca:80");
 
-        // pipeline.getElements().forEach(el -> System.out.println("Found el " + el.getName() + " " + el.getTypeName()));
+        pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
 
         Element identity = pipeline.getElementByName("identity");
         identity.getStaticPad("sink").addProbe(PadProbeType.BUFFER, this);
