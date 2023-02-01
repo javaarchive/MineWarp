@@ -62,9 +62,12 @@ public class GameStreamSystem implements Pad.PROBE {
                     JSONObject resp = new JSONObject();
                     resp.put("type", "existence_awk");
                     socket.emit("roomBroadcast", resp);
-                    webRTCBin.createOffer(this.onOfferCreated);
+                    System.out.println("Create Offer on existence of peer. ");
+                    webRTCBin.createOffer(onOfferCreated);
                 }else if(type.equals("offer")){
                     this.processOffer(message);
+                }else if(type.equals("offer_answer")){
+                    this.processOfferAnswer(message);
                 }else if(type.equals("ice")){
                     this.processIce(message);
                 }else if(type.equals("start")){
@@ -77,26 +80,42 @@ public class GameStreamSystem implements Pad.PROBE {
         }
     }
 
+    public void processOfferAnswer(JSONObject message) throws JSONException {
+        JSONObject offer = message.getJSONObject("offer");
+        String sdp = offer.getString("sdp");
+        System.out.println("Got SDP answer \n " + sdp);
+        SDPMessage sdpMsg = new SDPMessage();
+        sdpMsg.parseBuffer(sdp);
+        WebRTCSessionDescription desc = new WebRTCSessionDescription(WebRTCSDPType.ANSWER, sdpMsg);
+        System.out.println("Setting remote description of peer (offer recv) ");
+        webRTCBin.setRemoteDescription(desc);
+    }
+
     public void processOffer(JSONObject message) throws JSONException {
         JSONObject offer = message.getJSONObject("offer");
         String sdp = offer.getString("sdp");
         System.out.println("Got SDP \n " + sdp);
         SDPMessage sdpMsg = new SDPMessage();
         sdpMsg.parseBuffer(sdp);
-        WebRTCSessionDescription desc = new WebRTCSessionDescription(WebRTCSDPType.ANSWER, sdpMsg);
-        System.out.println("Setting remote description of peer");
+        WebRTCSessionDescription desc = new WebRTCSessionDescription(WebRTCSDPType.OFFER, sdpMsg);
+        System.out.println("Setting remote description of peer (offer answer recv) ");
         webRTCBin.setRemoteDescription(desc);
-        // Create offer
+        // Create offer's answer
         // System.out.println("Creating answer");
-        webRTCBin.createAnswer(this.onCreateAnswer);
+        // webRTCBin.createAnswer(this.onCreateAnswer);
     }
 
     public void processIce(JSONObject message) throws JSONException {
-        JSONObject offer = message.getJSONObject("ice");
-        String canidate = offer.getString("canidate");
-        int index = offer.getInt("sdpMLineIndex");
-        System.out.println("Got SDP \n " + canidate + " index " + index);
-        webRTCBin.addIceCandidate(index, canidate);
+        try {
+            JSONObject offer = message.getJSONObject("ice");
+            String canidate = offer.getString("candidate");
+            int index = offer.getInt("sdpMLineIndex");
+            System.out.println("Got SDP \n " + canidate + " index " + index);
+            webRTCBin.addIceCandidate(index, canidate);
+        }catch(JSONException jie){
+           System.out.println("Malformed ice canidate sent");
+            jie.printStackTrace();
+        }
     }
 
     public void initSocket(){
@@ -164,6 +183,8 @@ public class GameStreamSystem implements Pad.PROBE {
     public synchronized void init(){
         initStart = true;
 
+        if(this.socket == null) this.initSocket();
+
         // GStreamer native libs
         GStreamerExampleUtils.configurePaths();
         // Gst.init(Version.BASELINE, "MineWarp");
@@ -192,15 +213,12 @@ public class GameStreamSystem implements Pad.PROBE {
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
                 "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
-                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
+                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun1.l.google.com:19302");
 
         // pipeline.getElements().forEach(el -> System.out.println("Found el " + el.getName() + " " + el.getTypeName()));
 
         Element identity = pipeline.getElementByName("identity");
         identity.getStaticPad("sink").addProbe(PadProbeType.BUFFER, this);
-
-        webRTCBin = (WebRTCBin) pipeline.getElementByName("webrtcbin");
-        webRTCBin.connect(onNegotiationNeeded);
 
         // at this point I have no idea what exactly happens
         System.out.println("Attaching to pipeline messages");
@@ -219,20 +237,25 @@ public class GameStreamSystem implements Pad.PROBE {
 
         pipeline.getBus().connect((Bus.EOS) (source) -> Gst.quit());
 
-        System.out.println("Initialize gamestream success T: " + Thread.currentThread().getId());
+        webRTCBin = (WebRTCBin) pipeline.getElementByName("webrtcbin");
+        webRTCBin.connect(onNegotiationNeeded);
+        webRTCBin.connect(onIceCandidate);
 
-        if(this.socket == null) this.initSocket();
+        System.out.println("Initialize gamestream success T: " + Thread.currentThread().getId());
 
         System.out.println("Run GST Main");
         // pops up new window and waits so we run i nthread
         /*Thread t = new Thread(new Runnable() {
             @Override
+
             public void run() {
                 Gst.main();
             }
         });*/
 
         // t.start();
+
+        // Gst.invokeLater(() -> Gst.main());
 
         System.out.println("Playing pipeline");
         pipeline.play();
@@ -243,16 +266,17 @@ public class GameStreamSystem implements Pad.PROBE {
     }
 
     private WebRTCBin.CREATE_ANSWER onCreateAnswer = answer -> {
-        System.out.println("Answer created, sending it over");
+        String sdp = answer.getSDPMessage().toString();
+        System.out.println("Answer created, sending it over " + answer + " " + sdp);
         JSONObject obj = new JSONObject();
 
         webRTCBin.setLocalDescription(answer);
 
         try {
             obj.put("type", "offer_answer");
-            obj.put("sdp",  answer.getSDPMessage().toString());
+            obj.put("sdp", sdp);
             obj.put("origin", "server");
-            obj.put("offer", answer.getSDPMessage().toString());
+            obj.put("offer", sdp);
             this.socket.emit("roomBroadcast", obj);
         } catch (JSONException e) {
             System.out.println("Couldn't make offer json?");
@@ -261,16 +285,18 @@ public class GameStreamSystem implements Pad.PROBE {
     };
 
     private WebRTCBin.CREATE_OFFER onOfferCreated = offer -> {
-        System.out.println("Got local offer " + Thread.currentThread().getId() + " " + offer.getSDPMessage().toString());
+        String sdp = String.copyValueOf(offer.getSDPMessage().toString().toCharArray());
+        System.out.println("Got local offer " + Thread.currentThread().getId() + " " + sdp);
         webRTCBin.setLocalDescription(offer);
         JSONObject obj = new JSONObject();
 
         try {
             obj.put("type", "offer");
-            obj.put("sdp", offer.getSDPMessage().toString());
+            obj.put("sdp", sdp);
             obj.put("origin", "server");
-            obj.put("offer", offer.getSDPMessage().toString());
+            obj.put("offer", sdp);
             this.socket.emit("roomBroadcast", obj);
+            System.out.println("Sent local offer to remotes");
         } catch (JSONException e) {
             System.out.println("Couldn't make offer json?");
             throw new RuntimeException(e);
@@ -280,15 +306,15 @@ public class GameStreamSystem implements Pad.PROBE {
     // https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/src/main/java/org/freedesktop/gstreamer/examples/WebRTCSendRecv.java
     private WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
         System.out.println("Negotiation starting " + Thread.currentThread().getId());
-        webRTCBin.createOffer(onOfferCreated);
+        // webRTCBin.createOffer(onOfferCreated);
     };
 
     private WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
-        System.out.println("Got Ice Canidate");
+        System.out.println("Got Ice Canidate from local");
         try {
             JSONObject obj = new JSONObject();
-            obj.put("type", "offer");
-            obj.put("slpMLineIndex", sdpMLineIndex);
+            obj.put("type", "ice");
+            obj.put("sdpMLineIndex", sdpMLineIndex);
             obj.put("candidate", candidate);
             obj.put("origin", "server");
             this.socket.emit("roomBroadcast", obj);
@@ -299,7 +325,9 @@ public class GameStreamSystem implements Pad.PROBE {
     };
 
     public void debug(){
-        System.out.println("WRTC " + webRTCBin.getConnectionState());
+        // again ig
+        webRTCBin.createOffer(onOfferCreated);
+        System.out.println("WRTC " + webRTCBin.getConnectionState().intValue() + " " + webRTCBin.getStunServer() + " " + webRTCBin.getICEGatheringState());
     }
 
     public void start(){
@@ -307,6 +335,7 @@ public class GameStreamSystem implements Pad.PROBE {
             debug();
             return;
         }
+
     }
 
     public void capture(){
