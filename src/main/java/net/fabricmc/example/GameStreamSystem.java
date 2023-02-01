@@ -159,7 +159,7 @@ public class GameStreamSystem implements Pad.PROBE {
         GStreamerExampleUtils.configurePaths();
         // Gst.init(Version.BASELINE, "MineWarp");
 
-        Gst.init(Version.of(1, 16), "MineWarp");
+        Gst.init(Version.of(1, 14), "MineWarp");
 
         MinecraftClient mc = MinecraftClient.getInstance();
 
@@ -197,9 +197,18 @@ public class GameStreamSystem implements Pad.PROBE {
         // at this point I have no idea what exactly happens
         System.out.println("Attaching to pipeline messages");
         pipeline.getBus().connect((Bus.ERROR) ((source, code, message) -> {
-            System.out.println(message);
+            System.out.println("ERROR: " + message);
             Gst.quit();
         }));
+
+        pipeline.getBus().connect((source, old, current, pending) -> {
+            if (source instanceof Pipeline) {
+                System.out.println("Pipe state changed from " + old + " to " + current);
+            }else{
+                System.out.println("NonPipe state changed from " + old + " to " + current);
+            }
+        });
+
         pipeline.getBus().connect((Bus.EOS) (source) -> Gst.quit());
 
         System.out.println("Initialize gamestream success");
@@ -208,14 +217,14 @@ public class GameStreamSystem implements Pad.PROBE {
 
         System.out.println("Run GST Main");
         // pops up new window and waits so we run i nthread
-        /*Thread t = new Thread(new Runnable() {
+        /* Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 Gst.main();
             }
-        });*/
+        });
 
-        // t.start();
+        t.start(); */
 
         pipeline.play();
 
@@ -224,6 +233,8 @@ public class GameStreamSystem implements Pad.PROBE {
 
     private WebRTCBin.CREATE_ANSWER onCreateAnswer = answer -> {
         JSONObject obj = new JSONObject();
+
+        webRTCBin.setLocalDescription(answer);
 
         try {
             obj.put("type", "offer_answer");
@@ -239,7 +250,9 @@ public class GameStreamSystem implements Pad.PROBE {
 
     // https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/src/main/java/org/freedesktop/gstreamer/examples/WebRTCSendRecv.java
     private WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
+        System.out.println("Negotiation starting");
         webRTCBin.createOffer(offer -> {
+            System.out.println("Got local offer");
             webRTCBin.setLocalDescription(offer);
             JSONObject obj = new JSONObject();
 
@@ -258,6 +271,7 @@ public class GameStreamSystem implements Pad.PROBE {
     };
 
     private WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
+        System.out.println("Got Ice Canidate");
         try {
             JSONObject obj = new JSONObject();
             obj.put("type", "offer");
