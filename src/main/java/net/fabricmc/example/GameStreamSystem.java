@@ -52,7 +52,7 @@ public class GameStreamSystem implements Pad.PROBE {
         return val;
     }
 
-    public void handleMessage(JSONObject message, String origin){
+    public synchronized void handleMessage(JSONObject message, String origin){
         try {
             if (message.has("type")) {
                 String type = message.getString("type");
@@ -161,7 +161,7 @@ public class GameStreamSystem implements Pad.PROBE {
         }
     }
 
-    public void init(){
+    public synchronized void init(){
         initStart = true;
 
         // GStreamer native libs
@@ -261,7 +261,7 @@ public class GameStreamSystem implements Pad.PROBE {
     };
 
     private WebRTCBin.CREATE_OFFER onOfferCreated = offer -> {
-        System.out.println("Got local offer " + Thread.currentThread().getId());
+        System.out.println("Got local offer " + Thread.currentThread().getId() + " " + offer.getSDPMessage().toString());
         webRTCBin.setLocalDescription(offer);
         JSONObject obj = new JSONObject();
 
