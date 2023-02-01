@@ -44,7 +44,7 @@ public class GameStreamSystem implements Pad.PROBE {
         return initStart;
     }
 
-    public Socket socket = null;
+    public volatile Socket socket = null;
 
     public String getConf(String key, String defaultValue){
         String val = System.getenv(key);
@@ -56,12 +56,13 @@ public class GameStreamSystem implements Pad.PROBE {
         try {
             if (message.has("type")) {
                 String type = message.getString("type");
-                System.out.println("Recv message type "+ type);
+                System.out.println("Recv message type "+ type + " T: " + Thread.currentThread().getId());
                 if(type.equals("existence_check")){
                     System.out.println("Awking remote existence check. ");
                     JSONObject resp = new JSONObject();
                     resp.put("type", "existence_awk");
                     socket.emit("roomBroadcast", resp);
+                    webRTCBin.createOffer(this.onOfferCreated);
                 }else if(type.equals("offer")){
                     this.processOffer(message);
                 }else if(type.equals("ice")){
@@ -83,10 +84,10 @@ public class GameStreamSystem implements Pad.PROBE {
         SDPMessage sdpMsg = new SDPMessage();
         sdpMsg.parseBuffer(sdp);
         WebRTCSessionDescription desc = new WebRTCSessionDescription(WebRTCSDPType.ANSWER, sdpMsg);
-        System.out.println("Setting remote description");
+        System.out.println("Setting remote description of peer");
         webRTCBin.setRemoteDescription(desc);
         // Create offer
-        System.out.println("Creating answer");
+        // System.out.println("Creating answer");
         webRTCBin.createAnswer(this.onCreateAnswer);
     }
 
@@ -101,7 +102,7 @@ public class GameStreamSystem implements Pad.PROBE {
     public void initSocket(){
         try {
             GameStreamSystem gss = this;
-            System.out.println("Initializing socket for remote");
+            System.out.println("Initializing socket for remote " + Thread.currentThread().getId());
             String CONN_URL = "http://127.0.0.1:7331";
             System.out.println("Connecting to " + CONN_URL);
             this.socket = IO.socket(getConf("MW_REMOTE_URI", CONN_URL));
@@ -128,8 +129,16 @@ public class GameStreamSystem implements Pad.PROBE {
                     if(args.length > 0){
                         JSONObject messageInfo = (JSONObject) args[0];
                         try {
-                            gss.handleMessage(messageInfo.getJSONObject("message"), messageInfo.getString("origin"));
-                        } catch (JSONException e) {
+                            MinecraftClient.getInstance().executeSync(() -> {
+                                try {
+                                    gss.handleMessage(messageInfo.getJSONObject("message"), messageInfo.getString("origin"));
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                    System.out.println("RECV (Inner) : Malformed message!");
+                                }
+                            });
+
+                        } catch (Exception e) {
                             e.printStackTrace();
                             System.out.println("RECV: Malformed message!");
                         }
@@ -159,7 +168,7 @@ public class GameStreamSystem implements Pad.PROBE {
         GStreamerExampleUtils.configurePaths();
         // Gst.init(Version.BASELINE, "MineWarp");
 
-        Gst.init(Version.of(1, 14), "MineWarp");
+        Gst.init(Version.of(1, 16), "MineWarp");
 
         MinecraftClient mc = MinecraftClient.getInstance();
 
@@ -185,13 +194,12 @@ public class GameStreamSystem implements Pad.PROBE {
                 "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
                 "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
 
-        pipeline.getElements().forEach(el -> System.out.println("Found el " + el.getName() + " " + el.getTypeName()));
+        // pipeline.getElements().forEach(el -> System.out.println("Found el " + el.getName() + " " + el.getTypeName()));
 
         Element identity = pipeline.getElementByName("identity");
         identity.getStaticPad("sink").addProbe(PadProbeType.BUFFER, this);
 
         webRTCBin = (WebRTCBin) pipeline.getElementByName("webrtcbin");
-
         webRTCBin.connect(onNegotiationNeeded);
 
         // at this point I have no idea what exactly happens
@@ -205,33 +213,37 @@ public class GameStreamSystem implements Pad.PROBE {
             if (source instanceof Pipeline) {
                 System.out.println("Pipe state changed from " + old + " to " + current);
             }else{
-                System.out.println("NonPipe state changed from " + old + " to " + current);
+                // System.out.println("NonPipe state changed from " + old + " to " + current);
             }
         });
 
         pipeline.getBus().connect((Bus.EOS) (source) -> Gst.quit());
 
-        System.out.println("Initialize gamestream success");
+        System.out.println("Initialize gamestream success T: " + Thread.currentThread().getId());
 
         if(this.socket == null) this.initSocket();
 
         System.out.println("Run GST Main");
         // pops up new window and waits so we run i nthread
-        /* Thread t = new Thread(new Runnable() {
+        /*Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 Gst.main();
             }
-        });
+        });*/
 
-        t.start(); */
+        // t.start();
 
+        System.out.println("Playing pipeline");
         pipeline.play();
 
         initalized = true;
+
+
     }
 
     private WebRTCBin.CREATE_ANSWER onCreateAnswer = answer -> {
+        System.out.println("Answer created, sending it over");
         JSONObject obj = new JSONObject();
 
         webRTCBin.setLocalDescription(answer);
@@ -248,26 +260,27 @@ public class GameStreamSystem implements Pad.PROBE {
         }
     };
 
+    private WebRTCBin.CREATE_OFFER onOfferCreated = offer -> {
+        System.out.println("Got local offer " + Thread.currentThread().getId());
+        webRTCBin.setLocalDescription(offer);
+        JSONObject obj = new JSONObject();
+
+        try {
+            obj.put("type", "offer");
+            obj.put("sdp", offer.getSDPMessage().toString());
+            obj.put("origin", "server");
+            obj.put("offer", offer.getSDPMessage().toString());
+            this.socket.emit("roomBroadcast", obj);
+        } catch (JSONException e) {
+            System.out.println("Couldn't make offer json?");
+            throw new RuntimeException(e);
+        }
+    };
+
     // https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/src/main/java/org/freedesktop/gstreamer/examples/WebRTCSendRecv.java
     private WebRTCBin.ON_NEGOTIATION_NEEDED onNegotiationNeeded = elem -> {
-        System.out.println("Negotiation starting");
-        webRTCBin.createOffer(offer -> {
-            System.out.println("Got local offer");
-            webRTCBin.setLocalDescription(offer);
-            JSONObject obj = new JSONObject();
-
-            try {
-                obj.put("type", "offer");
-                obj.put("sdp", offer.getSDPMessage().toString());
-                obj.put("origin", "server");
-                obj.put("offer", offer.getSDPMessage().toString());
-                this.socket.emit("roomBroadcast", obj);
-            } catch (JSONException e) {
-                System.out.println("Couldn't make offer json?");
-                throw new RuntimeException(e);
-            }
-
-        });
+        System.out.println("Negotiation starting " + Thread.currentThread().getId());
+        webRTCBin.createOffer(onOfferCreated);
     };
 
     private WebRTCBin.ON_ICE_CANDIDATE onIceCandidate = (sdpMLineIndex, candidate) -> {
@@ -294,9 +307,6 @@ public class GameStreamSystem implements Pad.PROBE {
             debug();
             return;
         }
-        System.out.println("Playing pipeline");
-
-
     }
 
     public void capture(){
