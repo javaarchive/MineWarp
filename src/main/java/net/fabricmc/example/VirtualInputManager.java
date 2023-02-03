@@ -3,6 +3,7 @@ package net.fabricmc.example;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWCursorPosCallbackI;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
 
 import java.util.HashMap;
@@ -19,18 +20,30 @@ public class VirtualInputManager {
     // TODO: stop memory leak when windows are spam created by mod?
     public static Map<Long, GLFWKeyCallbackI> keyboardInputCallbacksByWindow = new HashMap<>();
 
-    public static void setPos(int x, int y){
+    public static Map<Long, GLFWCursorPosCallbackI> mouseMotionInputCallbacksByWindow = new HashMap<>();
+
+    public static void setMousePos(int x, int y){
         Window w = MinecraftClient.getInstance().getWindow();
         curx = (int) clamp(x,0,w.getWidth());
         cury = (int) clamp(y,0,w.getHeight());
     }
 
+    public static int getMouseX(){
+        return curx;
+    }
+
+    public static int getMouseY(){
+        return cury;
+    }
+
     public static void sync(){
         Window w = MinecraftClient.getInstance().getWindow();
         if(MinecraftClient.getInstance().currentScreen == null && MinecraftClient.getInstance().world != null){
-
+            
         }else {
-            GLFW.glfwSetCursorPos(w.getHandle(), curx, cury);
+            if(mouseMotionInputCallbacksByWindow.containsKey(w.getHandle())) {
+                mouseMotionInputCallbacksByWindow.get(w.getHandle()).invoke(w.getHandle(), curx, cury);
+            }
         }
     }
 

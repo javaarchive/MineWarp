@@ -90,7 +90,7 @@ public class GameStreamSystem implements Pad.PROBE {
         if(message.has("locked") && message.getBoolean("locked")){
 
         }else {
-            VirtualInputManager.setPos(message.getInt("x"), message.getInt("y"));
+            VirtualInputManager.setMousePos(message.getInt("x"), message.getInt("y"));
         }
     }
 
@@ -235,7 +235,7 @@ public class GameStreamSystem implements Pad.PROBE {
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
                 "queue ! vp9enc deadline=1 ! rtpvp9pay ! " +
-                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://relay.metered.ca:80");
+                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
 
         pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
 
