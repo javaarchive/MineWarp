@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(GLFW.class)
 public class GLFWMixin {
-    @Inject(at = @At("HEAD"), method = "glfwSetKeyCallback")
+    @Inject(at = @At("HEAD"), method = "glfwSetKeyCallback", remap = false)
     private static void onRegisterKeyboardHandler(long window, GLFWKeyCallbackI cbfun, CallbackInfoReturnable<GLFWKeyCallback> cir){
         VirtualInputManager.keyboardInputCallbacksByWindow.put(window, cbfun);
     }
