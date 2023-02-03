@@ -7,6 +7,7 @@ import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.input.KeyboardInput;
 import net.minecraft.client.util.Window;
 import org.freedesktop.gstreamer.*;
 import org.freedesktop.gstreamer.webrtc.WebRTCBin;
@@ -15,6 +16,7 @@ import org.freedesktop.gstreamer.webrtc.WebRTCSessionDescription;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL12;
 
@@ -72,12 +74,32 @@ public class GameStreamSystem implements Pad.PROBE {
                     this.processIce(message);
                 }else if(type.equals("start")){
                     this.start();
+                }else if(type.equals("keyChange")){
+                    this.processKeyChange(message);
+                }else if(type.equals("mouseUpdate")){
+                    this.processMouseInput(message);
                 }
             }
         }catch(JSONException mje){
             mje.printStackTrace();
             System.out.println("RECV: Malformed wrapped message recieved. ");
         }
+    }
+
+    public void processMouseInput(JSONObject message) throws JSONException {
+        if(message.has("locked") && message.getBoolean("locked")){
+
+        }else {
+            VirtualInputManager.setPos(message.getInt("x"), message.getInt("y"));
+        }
+    }
+
+    public void processKeyChange(JSONObject message) throws JSONException {
+        int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
+        if(message.has("repeat") && message.getBoolean("repeat")){
+            action = GLFW.GLFW_REPEAT;
+        }
+        VirtualInputManager.keyChange(message.getInt("code"),action,0);
     }
 
     public void processOfferAnswer(JSONObject message) throws JSONException {
@@ -212,7 +234,7 @@ public class GameStreamSystem implements Pad.PROBE {
                 ? "format=BGRx" : "format=xRGB");
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
-                "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
+                "queue ! vp9enc deadline=1 ! rtpvp9pay ! " +
                 "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://relay.metered.ca:80");
 
         pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
