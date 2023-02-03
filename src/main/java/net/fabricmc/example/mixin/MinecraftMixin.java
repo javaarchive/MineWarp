@@ -14,7 +14,7 @@ public abstract class MinecraftMixin {
 
     @Shadow public abstract void onWindowFocusChanged(boolean focused);
 
-    @Inject(at = @At("TAIL"), method = "isWindowFocused")
+    @Inject(at = @At("RETURN"), method = "isWindowFocused", cancellable = true)
     private void fakeWindowFocused(CallbackInfoReturnable<Boolean> cir){
         if(!cir.getReturnValue()){
             // hmmm it got changed back to false back to true pls

@@ -50,10 +50,10 @@ public class VirtualInputManager {
 
     public static void sync(){
         // Debug start
-        double[] x = {0,0};
-        double[] y = {0,0};
-        GLFW.glfwGetCursorPos(MinecraftClient.getInstance().getWindow().getHandle(), x,y);
-        System.out.println("CX " + x[0] + " CY: " + y[0] + " " + GameStreamSystem.INSTANCE.hasConnectedUser + " " + MinecraftClient.getInstance().mouse.isCursorLocked());
+        // double[] x = {0,0};
+        // double[] y = {0,0};
+        // GLFW.glfwGetCursorPos(MinecraftClient.getInstance().getWindow().getHandle(), x,y);
+        // System.out.println("CX " + x[0] + " CY: " + y[0] + " " + GameStreamSystem.INSTANCE.hasConnectedUser + " " + MinecraftClient.getInstance().mouse.isCursorLocked());
         // Debug end
         if(!GameStreamSystem.INSTANCE.hasConnectedUser) return;
         ((MouseAccessor) (Object) MinecraftClient.getInstance().mouse).setCursorLocked(cursorLocked);
