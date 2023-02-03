@@ -58,7 +58,8 @@ public class GameStreamSystem implements Pad.PROBE {
         try {
             if (message.has("type")) {
                 String type = message.getString("type");
-                System.out.println("Recv message type "+ type + " T: " + Thread.currentThread().getId());
+                // mouseUpdate is not logged to prevent spam
+                if(!type.equals("mouseUpdate")) System.out.println("Recv message type "+ type + " T: " + Thread.currentThread().getId());
                 if(type.equals("existence_check")){
                     System.out.println("Awking remote existence check. ");
                     JSONObject resp = new JSONObject();
@@ -234,7 +235,7 @@ public class GameStreamSystem implements Pad.PROBE {
                 ? "format=BGRx" : "format=xRGB");
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
-                "queue ! vp9enc deadline=1 ! rtpvp9pay ! " +
+                "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
                 "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
 
         pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
