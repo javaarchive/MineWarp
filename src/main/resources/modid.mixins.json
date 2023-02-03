@@ -5,10 +5,13 @@
   "compatibilityLevel": "JAVA_17",
   "mixins": [
     "GLFWMixin",
-    "WindowMixin"
+    "MouseMixin",
+    "WindowMixin",
+    "ExampleMixin",
+    "MouseAccessor",
+    "MinecraftMixin"
   ],
   "client": [
-    "ExampleMixin"
   ],
   "injectors": {
     "defaultRequire": 1

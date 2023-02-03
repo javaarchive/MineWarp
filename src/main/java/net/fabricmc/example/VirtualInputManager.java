@@ -1,5 +1,6 @@
 package net.fabricmc.example;
 
+import net.fabricmc.example.mixin.MouseAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
@@ -32,6 +33,11 @@ public class VirtualInputManager {
         // sync(); // may not do this later
     }
 
+    public static void relMoveMouse(int x, int y){
+        curx += x;
+        cury += y;
+    }
+
     public static int getMouseX(){
         return curx;
     }
@@ -40,10 +46,23 @@ public class VirtualInputManager {
         return cury;
     }
 
+    static boolean cursorLocked = false;
+
     public static void sync(){
+        // Debug start
+        double[] x = {0,0};
+        double[] y = {0,0};
+        GLFW.glfwGetCursorPos(MinecraftClient.getInstance().getWindow().getHandle(), x,y);
+        System.out.println("CX " + x[0] + " CY: " + y[0] + " " + GameStreamSystem.INSTANCE.hasConnectedUser + " " + MinecraftClient.getInstance().mouse.isCursorLocked());
+        // Debug end
+        if(!GameStreamSystem.INSTANCE.hasConnectedUser) return;
+        ((MouseAccessor) (Object) MinecraftClient.getInstance().mouse).setCursorLocked(cursorLocked);
+
         Window w = MinecraftClient.getInstance().getWindow();
         if(MinecraftClient.getInstance().currentScreen == null && MinecraftClient.getInstance().world != null){
-            
+            if(mouseMotionInputCallbacksByWindow.containsKey(w.getHandle())) {
+                mouseMotionInputCallbacksByWindow.get(w.getHandle()).invoke(w.getHandle(), curx, cury);
+            }
         }else {
             if(mouseMotionInputCallbacksByWindow.containsKey(w.getHandle())) {
                 mouseMotionInputCallbacksByWindow.get(w.getHandle()).invoke(w.getHandle(), curx, cury);

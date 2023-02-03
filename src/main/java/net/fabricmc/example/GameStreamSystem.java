@@ -48,10 +48,17 @@ public class GameStreamSystem implements Pad.PROBE {
 
     public volatile Socket socket = null;
 
-    public String getConf(String key, String defaultValue){
+    public boolean hasConnectedUser = false;
+
+    public String getConf(String key, String defaultValue) {
         String val = System.getenv(key);
-        if(val == null) return System.getProperty("mw.config." + key,defaultValue);
+        if (val == null) return System.getProperty("mw.config." + key, defaultValue);
         return val;
+    }
+
+    public void syncData(){
+        hasConnectedUser = true;
+        // TODO
     }
 
     public synchronized void handleMessage(JSONObject message, String origin){
@@ -60,27 +67,23 @@ public class GameStreamSystem implements Pad.PROBE {
                 String type = message.getString("type");
                 // mouseUpdate is not logged to prevent spam
                 if(!type.equals("mouseUpdate")) System.out.println("Recv message type "+ type + " T: " + Thread.currentThread().getId());
-                if(type.equals("existence_check")){
-                    System.out.println("Awking remote existence check. ");
-                    JSONObject resp = new JSONObject();
-                    resp.put("type", "existence_awk");
-                    socket.emit("roomBroadcast", resp);
-                    System.out.println("Create Offer on existence of peer. ");
-                    webRTCBin.createOffer(onOfferCreated);
-                }else if(type.equals("offer")){
-                    this.processOffer(message);
-                }else if(type.equals("offer_answer")){
-                    this.processOfferAnswer(message);
-                }else if(type.equals("ice")){
-                    this.processIce(message);
-                }else if(type.equals("start")){
-                    this.start();
-                }else if(type.equals("keyChange")){
-                    this.processKeyChange(message);
-                }else if(type.equals("mouseUpdate")){
-                    this.processMouseInput(message);
-                }else if(type.equals("mouseClick")){
-                    this.processMouseButton(message);
+                switch (type) {
+                    case "existence_check" -> {
+                        System.out.println("Awking remote existence check. ");
+                        JSONObject resp = new JSONObject();
+                        resp.put("type", "existence_awk");
+                        socket.emit("roomBroadcast", resp);
+                        System.out.println("Create Offer on existence of peer. ");
+                        webRTCBin.createOffer(onOfferCreated);
+                    }
+                    case "offer" -> this.processOffer(message);
+                    case "offer_answer" -> this.processOfferAnswer(message);
+                    case "ice" -> this.processIce(message);
+                    case "start" -> this.start();
+                    case "keyChange" -> this.processKeyChange(message);
+                    case "mouseUpdate" -> this.processMouseInput(message);
+                    case "mouseClick" -> this.processMouseButton(message);
+                    case "syncRequest" -> this.syncData();
                 }
             }
         }catch(JSONException mje){
@@ -89,9 +92,16 @@ public class GameStreamSystem implements Pad.PROBE {
         }
     }
 
-    public void processMouseInput(JSONObject message) throws JSONException {
-        if(message.has("locked") && message.getBoolean("locked")){
+    public void processInputCommon(JSONObject message) throws JSONException{
+        if(message.has("locked")){
+            VirtualInputManager.cursorLocked = message.getBoolean("locked");
+        }
+    }
 
+    public void processMouseInput(JSONObject message) throws JSONException {
+        processInputCommon(message);
+        if(message.has("locked") && message.getBoolean("locked")){
+            VirtualInputManager.relMoveMouse(message.getInt("mx"), message.getInt("my"));
         }else {
             VirtualInputManager.setMousePos(message.getInt("x"), message.getInt("y"));
         }
@@ -115,6 +125,7 @@ public class GameStreamSystem implements Pad.PROBE {
     }
 
     public void processKeyChange(JSONObject message) throws JSONException {
+        processInputCommon(message);
         int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
         if(message.has("repeat") && message.getBoolean("repeat")){
             action = GLFW.GLFW_REPEAT;
@@ -123,8 +134,16 @@ public class GameStreamSystem implements Pad.PROBE {
     }
 
     public void processMouseButton(JSONObject message) throws JSONException {
+        processInputCommon(message);
         int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
         VirtualInputManager.mouseButtonChange(message.getInt("button"),action,calcMods(message));
+    }
+
+    public void requestMouseLockStateChange(boolean newState) throws JSONException {
+        JSONObject obj = new JSONObject();
+        obj.put("type", "mouseLockStateChangeRequest");
+        obj.put("newState", newState);
+        this.socket.emit("roomBroadcast", obj);
     }
 
     public void processOfferAnswer(JSONObject message) throws JSONException {

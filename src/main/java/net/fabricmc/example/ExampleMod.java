@@ -2,6 +2,7 @@ package net.fabricmc.example;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.ModInitializer;
+import net.minecraft.client.MinecraftClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,6 +23,7 @@ public class ExampleMod implements ModInitializer {
 		/*if(!GameStreamSystem.INSTANCE.checkInitStarted()){
 			GameStreamSystem.INSTANCE.init();
 		}*/
+
 
 	}
 }

@@ -1,5 +1,6 @@
 package net.fabricmc.example.mixin;
 
+import net.fabricmc.example.GameStreamSystem;
 import net.fabricmc.example.VirtualInputManager;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.*;
@@ -32,14 +33,16 @@ public class GLFWMixin {
         VirtualInputManager.mouseButtonInputCallbacksByWindow.put(window, cbfun);
     }
 
-    @Inject(at = @At("HEAD"), method = "glfwGetCursorPos(J[D[D)V", remap = false)
+    @Inject(at = @At("TAIL"), method = "glfwGetCursorPos(J[D[D)V", remap = false)
     private static void onGetCursorPosSimple(long window, double[] xpos, double[] ypos, CallbackInfo ci){
+        if(!GameStreamSystem.INSTANCE.hasConnectedUser) return; // no modify!
         xpos[0] = VirtualInputManager.getMouseX();
         ypos[0] = VirtualInputManager.getMouseY();
     }
 
-    @Inject(at = @At("HEAD"), method = "glfwGetCursorPos(JLjava/nio/DoubleBuffer;Ljava/nio/DoubleBuffer;)V", remap = false)
+    @Inject(at = @At("TAIL"), method = "glfwGetCursorPos(JLjava/nio/DoubleBuffer;Ljava/nio/DoubleBuffer;)V", remap = false)
     private static void onGetCursorPosSimple(long window, DoubleBuffer xpos, DoubleBuffer ypos, CallbackInfo ci){
+        if(!GameStreamSystem.INSTANCE.hasConnectedUser) return; // no modify
         xpos.rewind();
         xpos.put((double) VirtualInputManager.getMouseX());
         ypos.rewind();

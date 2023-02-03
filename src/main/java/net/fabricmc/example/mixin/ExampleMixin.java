@@ -16,6 +16,8 @@ public class ExampleMixin {
 		if(!GameStreamSystem.INSTANCE.checkInitStarted()){
 		 	MinecraftClient.getInstance().execute(() -> {
 				 GameStreamSystem.INSTANCE.init();
+				 // Disable raw input
+				MinecraftClient.getInstance().options.getRawMouseInput().setValue(false);
 			});
 		}
 	}
