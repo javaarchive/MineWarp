@@ -27,6 +27,11 @@ public class GLFWMixin {
         VirtualInputManager.mouseMotionInputCallbacksByWindow.put(window, cbfun);
     }
 
+    @Inject(at = @At("HEAD"), method = "glfwSetMouseButtonCallback", remap = false)
+    private static void onRegisterMouseMotionHandler(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWmousebuttonfun") GLFWMouseButtonCallbackI cbfun, CallbackInfoReturnable<GLFWMouseButtonCallback> cir){
+        VirtualInputManager.mouseButtonInputCallbacksByWindow.put(window, cbfun);
+    }
+
     @Inject(at = @At("HEAD"), method = "glfwGetCursorPos(J[D[D)V", remap = false)
     private static void onGetCursorPosSimple(long window, double[] xpos, double[] ypos, CallbackInfo ci){
         xpos[0] = VirtualInputManager.getMouseX();

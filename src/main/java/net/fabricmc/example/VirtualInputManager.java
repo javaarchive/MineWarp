@@ -5,6 +5,7 @@ import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWCursorPosCallbackI;
 import org.lwjgl.glfw.GLFWKeyCallbackI;
+import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,10 +23,13 @@ public class VirtualInputManager {
 
     public static Map<Long, GLFWCursorPosCallbackI> mouseMotionInputCallbacksByWindow = new HashMap<>();
 
+    public static Map<Long, GLFWMouseButtonCallbackI> mouseButtonInputCallbacksByWindow = new HashMap<>();
+
     public static void setMousePos(int x, int y){
         Window w = MinecraftClient.getInstance().getWindow();
         curx = (int) clamp(x,0,w.getWidth());
         cury = (int) clamp(y,0,w.getHeight());
+        // sync(); // may not do this later
     }
 
     public static int getMouseX(){
@@ -50,11 +54,26 @@ public class VirtualInputManager {
     public static void keyChange(int jsKey, int action, int mods){
         MinecraftClient minecraftClient = MinecraftClient.getInstance();
         Window w = minecraftClient.getWindow();
+        if(!keyboardInputCallbacksByWindow.containsKey(w.getHandle())) return;
         GLFWKeyCallbackI cb = keyboardInputCallbacksByWindow.get(w.getHandle());
         int glfwKeyCode = KeyMapper.convertVKtoGLFW(jsKey);
         if(glfwKeyCode == KeyMapper.NOT_SUPPORTED_KEY){
             return;
         }
         cb.invoke(w.getHandle(), glfwKeyCode,GLFW.glfwGetKeyScancode(glfwKeyCode), action, mods);
+    }
+
+    /*public static int getMouseButtonFromJS(int mouseBtnJS){
+        if(mouseBtnJS == 0) return GLFW.MOUSE_
+    }*/
+
+    public static void mouseButtonChange(int button, int action, int mods){
+        MinecraftClient minecraftClient = MinecraftClient.getInstance();
+        Window w = minecraftClient.getWindow();
+
+        if(!mouseButtonInputCallbacksByWindow.containsKey(w.getHandle())) return;
+
+        GLFWMouseButtonCallbackI cb = mouseButtonInputCallbacksByWindow.get(w.getHandle());
+        cb.invoke(w.getHandle(), button, action, mods);
     }
 }

@@ -79,6 +79,8 @@ public class GameStreamSystem implements Pad.PROBE {
                     this.processKeyChange(message);
                 }else if(type.equals("mouseUpdate")){
                     this.processMouseInput(message);
+                }else if(type.equals("mouseClick")){
+                    this.processMouseButton(message);
                 }
             }
         }catch(JSONException mje){
@@ -95,12 +97,34 @@ public class GameStreamSystem implements Pad.PROBE {
         }
     }
 
+    public int calcMods(JSONObject message) throws JSONException{
+        int mods = 0;
+        if(message.has("altKeyDown") && message.getBoolean("altKeyDown")){
+            mods = mods | GLFW.GLFW_MOD_ALT;
+        }
+        if(message.has("shiftKeyDown") && message.getBoolean("shiftKeyDown")){
+            mods = mods | GLFW.GLFW_MOD_SHIFT;
+        }
+        if(message.has("ctrlKeyDown") && message.getBoolean("ctrlKeyDown")){
+            mods = mods | GLFW.GLFW_MOD_CONTROL;
+        }
+        if(message.has("metaKeyDown") && message.getBoolean("metaKeyDown")){
+            mods = mods | GLFW.GLFW_MOD_SUPER;
+        }
+        return mods;
+    }
+
     public void processKeyChange(JSONObject message) throws JSONException {
         int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
         if(message.has("repeat") && message.getBoolean("repeat")){
             action = GLFW.GLFW_REPEAT;
         }
-        VirtualInputManager.keyChange(message.getInt("code"),action,0);
+        VirtualInputManager.keyChange(message.getInt("code"),action,calcMods(message));
+    }
+
+    public void processMouseButton(JSONObject message) throws JSONException {
+        int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
+        VirtualInputManager.mouseButtonChange(message.getInt("button"),action,calcMods(message));
     }
 
     public void processOfferAnswer(JSONObject message) throws JSONException {
@@ -236,7 +260,7 @@ public class GameStreamSystem implements Pad.PROBE {
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
                 "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
-                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://stun.l.google.com:19302");
+                "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://relay.metered.ca:80");
 
         pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
 
