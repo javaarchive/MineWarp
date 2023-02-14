@@ -3,14 +3,14 @@
   "id": "modid",
   "version": "${version}",
 
-  "name": "Example Mod",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "MineWarp",
+  "description": "Allows Minecraft to be played through the cloud through gamestreaming technologies. ",
   "authors": [
-    "Me!"
+    "javaarchive"
   ],
   "contact": {
-    "homepage": "https://fabricmc.net/",
-    "sources": "https://github.com/FabricMC/fabric-example-mod"
+    "homepage": "https://github.com/javaarchive/MineWarp",
+    "sources": "https://github.com/javaarchive/MineWarp"
   },
 
   "license": "CC0-1.0",
@@ -19,11 +19,11 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "net.fabricmc.example.ExampleMod"
+      "io.javaarchive.minewarp.MinewarpMod"
     ]
   },
   "mixins": [
-    "modid.mixins.json"
+    "minewarp.mixins.json"
   ],
 
   "depends": {
@@ -33,6 +33,6 @@
     "java": ">=17"
   },
   "suggests": {
-    "another-mod": "*"
+
   }
 }

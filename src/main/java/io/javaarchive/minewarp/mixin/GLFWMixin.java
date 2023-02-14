@@ -1,7 +1,7 @@
-package net.fabricmc.example.mixin;
+package io.javaarchive.minewarp.mixin;
 
-import net.fabricmc.example.GameStreamSystem;
-import net.fabricmc.example.VirtualInputManager;
+import io.javaarchive.minewarp.GameStreamSystem;
+import io.javaarchive.minewarp.VirtualInputManager;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.*;
 import org.lwjgl.system.NativeType;
@@ -26,6 +26,11 @@ public class GLFWMixin {
     @Inject(at = @At("HEAD"), method = "glfwSetCharCallback", remap = false)
     private static void onRegisterCharacterHandler(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWcharfun") GLFWCharCallbackI cbfun, CallbackInfoReturnable<GLFWCharCallback> cir){
         VirtualInputManager.keyboardCharCallbacksByWindow.put(window, cbfun);
+    }
+
+    @Inject(at = @At("HEAD"), method = "glfwSetCharModsCallback", remap = false)
+    private static void onRegisterCharacterHandler(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWcharmodsfun") GLFWCharModsCallbackI cbfun, CallbackInfoReturnable<GLFWCharModsCallback> cir){
+        VirtualInputManager.keyboardCharModCallbacksByWindow.put(window, cbfun);
     }
 
     @Inject(at = @At("HEAD"), method = "glfwSetCursorPosCallback", remap = false)

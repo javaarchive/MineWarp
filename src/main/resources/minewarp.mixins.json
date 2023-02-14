@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "io.javaarchive.minewarp.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "io.javaarchive.minewarp.mixin.GLFWMixin",
+    "io.javaarchive.minewarp.mixin.MouseMixin",
+    "io.javaarchive.minewarp.mixin.WindowMixin",
+    "io.javaarchive.minewarp.mixin.ExampleMixin",
+    "io.javaarchive.minewarp.mixin.MouseAccessor",
+    "io.javaarchive.minewarp.mixin.MinecraftMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

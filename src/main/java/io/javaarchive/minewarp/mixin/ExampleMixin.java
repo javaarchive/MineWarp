@@ -1,7 +1,6 @@
-package net.fabricmc.example.mixin;
+package io.javaarchive.minewarp.mixin;
 
-import net.fabricmc.example.ExampleMod;
-import net.fabricmc.example.GameStreamSystem;
+import io.javaarchive.minewarp.GameStreamSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.TitleScreen;
 import org.spongepowered.asm.mixin.Mixin;

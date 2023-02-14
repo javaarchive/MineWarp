@@ -1,4 +1,4 @@
-package net.fabricmc.example;
+package io.javaarchive.minewarp;
 
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.

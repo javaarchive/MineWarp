@@ -1,13 +1,11 @@
-package net.fabricmc.example;
+package io.javaarchive.minewarp;
 
 
-import com.google.gson.stream.MalformedJsonException;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
-import net.minecraft.client.input.KeyboardInput;
 import net.minecraft.client.util.Window;
 import org.freedesktop.gstreamer.*;
 import org.freedesktop.gstreamer.webrtc.WebRTCBin;
@@ -130,16 +128,17 @@ public class GameStreamSystem implements Pad.PROBE {
         if(message.has("repeat") && message.getBoolean("repeat")){
             action = GLFW.GLFW_REPEAT;
         }
-        VirtualInputManager.keyChange(message.getInt("code"),action,calcMods(message));
+        int mods = calcMods(message); // calculate modifiers
+        VirtualInputManager.keyChange(message.getInt("code"),action, mods);
         if(action == GLFW.GLFW_PRESS && message.has("char") && message.getString("char").length() == 1){
-            VirtualInputManager.charTyped(message.getString("char").charAt(0));
+            VirtualInputManager.charTyped(message.getString("char").charAt(0), mods);
         }
     }
 
     public void processMouseButton(JSONObject message) throws JSONException {
         processInputCommon(message);
         int action = message.getBoolean("isDown") ? GLFW.GLFW_PRESS : GLFW.GLFW_RELEASE;
-        VirtualInputManager.mouseButtonChange(message.getInt("button"),action,calcMods(message));
+        VirtualInputManager.mouseButtonChange(KeyMapper.jsToGlfwMouseButton(message.getInt("button")),action,calcMods(message));
     }
 
     public void requestMouseLockStateChange(boolean newState) throws JSONException {
@@ -182,7 +181,7 @@ public class GameStreamSystem implements Pad.PROBE {
             System.out.println("Got SDP \n " + canidate + " index " + index);
             webRTCBin.addIceCandidate(index, canidate);
         }catch(JSONException jie){
-           System.out.println("Malformed ice canidate sent");
+           System.out.println("Malformed ice canidate sent " + message.toString());
             jie.printStackTrace();
         }
     }

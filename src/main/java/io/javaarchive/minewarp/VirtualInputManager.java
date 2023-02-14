@@ -1,13 +1,12 @@
-package net.fabricmc.example;
+package io.javaarchive.minewarp;
 
-import net.fabricmc.example.mixin.MouseAccessor;
+import io.javaarchive.minewarp.mixin.MouseAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class VirtualInputManager {
 
@@ -21,6 +20,8 @@ public class VirtualInputManager {
     public static Map<Long, GLFWKeyCallbackI> keyboardInputCallbacksByWindow = new HashMap<>();
 
     public static Map<Long, GLFWCharCallbackI> keyboardCharCallbacksByWindow = new HashMap<>();
+
+    public static Map<Long, GLFWCharModsCallbackI> keyboardCharModCallbacksByWindow = new HashMap<>();
 
     public static Map<Long, GLFWCursorPosCallbackI> mouseMotionInputCallbacksByWindow = new HashMap<>();
 
@@ -93,12 +94,17 @@ public class VirtualInputManager {
         cb.invoke(w.getHandle(), glfwKeyCode,GLFW.glfwGetKeyScancode(glfwKeyCode), action, mods);
     }
 
-    public static void charTyped(char c){
+    public static void charTyped(char c, int mods) {
         MinecraftClient minecraftClient = MinecraftClient.getInstance();
         Window w = minecraftClient.getWindow();
-        GLFWCharCallbackI cb = keyboardCharCallbacksByWindow.get(w.getHandle());
-        if(cb == null) return;
-        cb.invoke(w.getHandle(), (int) c);
+        if (keyboardCharCallbacksByWindow.containsKey(w.getHandle())) {
+            GLFWCharCallbackI cb = keyboardCharCallbacksByWindow.get(w.getHandle());
+            cb.invoke(w.getHandle(), (int) c);
+        }
+        if (keyboardCharModCallbacksByWindow.containsKey(w.getHandle())) {
+            GLFWCharModsCallbackI cb = keyboardCharModCallbacksByWindow.get(w.getHandle());
+            cb.invoke(w.getHandle(), (int) c, mods);
+        }
     }
 
     /*public static int getMouseButtonFromJS(int mouseBtnJS){

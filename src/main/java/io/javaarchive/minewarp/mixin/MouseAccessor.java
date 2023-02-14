@@ -1,4 +1,4 @@
-package net.fabricmc.example.mixin;
+package io.javaarchive.minewarp.mixin;
 
 import net.minecraft.client.Mouse;
 import org.spongepowered.asm.mixin.Mixin;

@@ -1,4 +1,4 @@
-package net.fabricmc.example;
+package io.javaarchive.minewarp;
 
 import org.lwjgl.glfw.GLFW;
 
@@ -194,6 +194,10 @@ public class KeyMapper {
         // 166-183 -> windows media keys
         // 184-185 -> reserved
         // 186-192 -> windows 2000 keys
+        if(vk_code == 191){
+            // slash key
+            return GLFW.GLFW_KEY_SLASH;
+        }
         // 193-215 -> reserved
         // 216-218 -> unassigned
         // 219-222 -> windows 2000 keys
@@ -219,5 +223,14 @@ public class KeyMapper {
 
         // Not supported yet
         return NOT_SUPPORTED_KEY;
+    }
+
+    public static int jsToGlfwMouseButton(int jsBtn){
+        return switch (jsBtn) {
+            case 0 -> GLFW.GLFW_MOUSE_BUTTON_LEFT;
+            case 1 -> GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
+            case 2 -> GLFW.GLFW_MOUSE_BUTTON_RIGHT;
+            default -> jsBtn;
+        };
     }
 }

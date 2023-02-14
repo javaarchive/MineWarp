@@ -1,9 +1,7 @@
-package net.fabricmc.example.mixin;
+package io.javaarchive.minewarp.mixin;
 
-import net.fabricmc.example.GameStreamSystem;
-import net.fabricmc.example.VirtualInputManager;
+import io.javaarchive.minewarp.GameStreamSystem;
 import net.minecraft.client.Mouse;
-import net.minecraft.client.util.Window;
 import org.json.JSONException;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
