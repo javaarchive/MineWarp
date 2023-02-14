@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(Mouse.class)
+@Mixin(value = Mouse.class, priority = 5)
 public class MouseMixin {
     @Inject(at = @At("HEAD"), method = "lockCursor", cancellable = true)
     private void onCursorLockRequest(CallbackInfo ci){

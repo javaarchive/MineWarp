@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.DoubleBuffer;
 
-@Mixin(GLFW.class)
+@Mixin(value = GLFW.class, priority = 5)
 public class GLFWMixin {
 
     // please match signature exactly so nullable and more importantly NativeType annotations needed

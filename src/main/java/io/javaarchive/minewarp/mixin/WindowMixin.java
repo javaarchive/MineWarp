@@ -8,7 +8,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(Window.class)
+@Mixin(value = Window.class, priority = 5)
 public class WindowMixin {
     @Inject(at = @At("HEAD"), method = "swapBuffers")
     private void onRenderFinish(CallbackInfo ci){

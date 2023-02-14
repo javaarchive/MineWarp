@@ -1,6 +1,7 @@
 plugins {
 	id 'fabric-loom' version '1.1-SNAPSHOT'
 	id 'maven-publish'
+	id 'com.github.johnrengelman.shadow' version '7.0.0'
 }
 
 sourceCompatibility = JavaVersion.VERSION_17
@@ -34,28 +35,50 @@ dependencies {
 
 	// broadcast deps
 	// https://github.com/gstreamer-java/gst1-java-examples/blob/master/WebRTCSendRecv/build.gradle
-	implementation 'net.java.dev.jna:jna:5.10.0'
-	implementation 'net.java.dev.jna:jna-platform:5.10.0'
-	implementation 'org.freedesktop.gstreamer:gst1-java-core:1.4.0'
+	shadow(implementation('net.java.dev.jna:jna:5.10.0'))
+	shadow(implementation('net.java.dev.jna:jna-platform:5.10.0'))
+	shadow(implementation('org.freedesktop.gstreamer:gst1-java-core:1.4.0'))
 
-	implementation 'org.asynchttpclient:async-http-client:2.12.3'
-	implementation 'com.fasterxml.jackson.core:jackson-databind:2.12.3'
-	implementation 'org.slf4j:slf4j-jdk14:1.7.30'
+	shadow(implementation('org.asynchttpclient:async-http-client:2.12.3'))
+	shadow(implementation('com.fasterxml.jackson.core:jackson-databind:2.12.3'))
+	shadow(implementation('org.slf4j:slf4j-jdk14:1.7.30'))
 
-	implementation 'io.socket:socket.io-client:2.1.0'
+	shadow(implementation('org.json:json:20090211'))
+	shadow(implementation('io.socket:socket.io-client:2.1.0'))
 }
 
-processResources {
-	inputs.property "version", project.version
+// thanks to https://github.com/Siphalor/spiceoffabric/blob/1.18/build.gradle
+// for showing me how to shadow
 
-	filesMatching("fabric.mod.json") {
-		expand "version": project.version
-	}
+// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+// if it is present.
+// If you remove this task, sources will not be generated.
+tasks.withType(JavaCompile) {
+	options.encoding = "UTF-8"
 }
 
-tasks.withType(JavaCompile).configureEach {
-	// Minecraft 1.18 (1.18-pre2) upwards uses Java 17.
-	it.options.release = 17
+// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+// if it is present.
+// If you remove this task, sources will not be generated.
+task sourcesJar(type: Jar, dependsOn: classes) {
+	archiveClassifier.set("sources")
+	from sourceSets.main.allSource
+}
+
+jar {
+	from "LICENSE"
+	archiveClassifier.set("dev")
+}
+
+shadowJar {
+	configurations = [project.configurations.shadow]
+	archiveClassifier.set("dev")
+	relocate "net.objecthunter", "de.siphalor.spiceoffabric.shadow.net.objecthunter"
+}
+
+remapJar {
+	dependsOn(shadowJar)
+	inputFile = tasks.shadowJar.archiveFile
 }
 
 java {
