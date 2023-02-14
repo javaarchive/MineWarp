@@ -3,13 +3,11 @@ package net.fabricmc.example;
 import net.fabricmc.example.mixin.MouseAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.util.Window;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWCursorPosCallbackI;
-import org.lwjgl.glfw.GLFWKeyCallbackI;
-import org.lwjgl.glfw.GLFWMouseButtonCallbackI;
+import org.lwjgl.glfw.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 public class VirtualInputManager {
 
@@ -22,9 +20,13 @@ public class VirtualInputManager {
     // TODO: stop memory leak when windows are spam created by mod?
     public static Map<Long, GLFWKeyCallbackI> keyboardInputCallbacksByWindow = new HashMap<>();
 
+    public static Map<Long, GLFWCharCallbackI> keyboardCharCallbacksByWindow = new HashMap<>();
+
     public static Map<Long, GLFWCursorPosCallbackI> mouseMotionInputCallbacksByWindow = new HashMap<>();
 
     public static Map<Long, GLFWMouseButtonCallbackI> mouseButtonInputCallbacksByWindow = new HashMap<>();
+
+    public static Map<Integer, Integer> virtualKeyState = new HashMap<>(); // key code to action
 
     public static void setMousePos(int x, int y){
         Window w = MinecraftClient.getInstance().getWindow();
@@ -70,16 +72,33 @@ public class VirtualInputManager {
         }
     }
 
+    public static int getVirtualKeyState(int keyCode){
+        if(!VirtualInputManager.virtualKeyState.containsKey(keyCode)){
+            return GLFW.GLFW_RELEASE;
+        }
+        return VirtualInputManager.virtualKeyState.get(keyCode);
+    }
+
     public static void keyChange(int jsKey, int action, int mods){
         MinecraftClient minecraftClient = MinecraftClient.getInstance();
         Window w = minecraftClient.getWindow();
         if(!keyboardInputCallbacksByWindow.containsKey(w.getHandle())) return;
         GLFWKeyCallbackI cb = keyboardInputCallbacksByWindow.get(w.getHandle());
+        if(cb == null) return;
         int glfwKeyCode = KeyMapper.convertVKtoGLFW(jsKey);
         if(glfwKeyCode == KeyMapper.NOT_SUPPORTED_KEY){
             return;
         }
+        virtualKeyState.put(glfwKeyCode, action);
         cb.invoke(w.getHandle(), glfwKeyCode,GLFW.glfwGetKeyScancode(glfwKeyCode), action, mods);
+    }
+
+    public static void charTyped(char c){
+        MinecraftClient minecraftClient = MinecraftClient.getInstance();
+        Window w = minecraftClient.getWindow();
+        GLFWCharCallbackI cb = keyboardCharCallbacksByWindow.get(w.getHandle());
+        if(cb == null) return;
+        cb.invoke(w.getHandle(), (int) c);
     }
 
     /*public static int getMouseButtonFromJS(int mouseBtnJS){

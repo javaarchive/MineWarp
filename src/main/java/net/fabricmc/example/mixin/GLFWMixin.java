@@ -23,6 +23,11 @@ public class GLFWMixin {
         VirtualInputManager.keyboardInputCallbacksByWindow.put(window, cbfun);
     }
 
+    @Inject(at = @At("HEAD"), method = "glfwSetCharCallback", remap = false)
+    private static void onRegisterCharacterHandler(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWcharfun") GLFWCharCallbackI cbfun, CallbackInfoReturnable<GLFWCharCallback> cir){
+        VirtualInputManager.keyboardCharCallbacksByWindow.put(window, cbfun);
+    }
+
     @Inject(at = @At("HEAD"), method = "glfwSetCursorPosCallback", remap = false)
     private static void onRegisterMouseMotionHandler(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWcursorposfun") GLFWCursorPosCallbackI cbfun, CallbackInfoReturnable<GLFWCursorPosCallback> cir){
         VirtualInputManager.mouseMotionInputCallbacksByWindow.put(window, cbfun);
@@ -47,5 +52,12 @@ public class GLFWMixin {
         xpos.put((double) VirtualInputManager.getMouseX());
         ypos.rewind();
         ypos.put((double) VirtualInputManager.getMouseY());
+    }
+
+    @Inject(at = @At("TAIL"), method = "glfwGetKey", remap = false, cancellable = true)
+    private static void onGetCursorPosSimple(long window, int key, CallbackInfoReturnable<Integer> cir){
+        if(cir.getReturnValue() == GLFW.GLFW_RELEASE){
+            cir.setReturnValue(VirtualInputManager.getVirtualKeyState(key));
+        }
     }
 }

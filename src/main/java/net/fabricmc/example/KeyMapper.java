@@ -51,9 +51,14 @@ public class KeyMapper {
             return 257;
         }
         // 14, 15 -> undefined
-        // 16 -> shift - there is no equivalent in GLFW
-        // 17 -> ctrl - there is no equivalent in GLFW
-        // 18 -> alt - there is no equivalent in GLFW
+        // 16 -> shift - there is no (actually kinda) equivalent in GLFW
+        if(vk_code == 16) {
+            return GLFW.GLFW_KEY_LEFT_SHIFT;
+        }
+        // 17 -> ctrl - there is no (actually kinda) equivalent in GLFW
+        if(vk_code == 17) return GLFW.GLFW_KEY_LEFT_CONTROL;
+        // 18 -> alt - there is no (actually kinda) equivalent in GLFW
+        if(vk_code == 18) return GLFW.GLFW_KEY_LEFT_ALT;
         if (vk_code == 19) {
             // 19 -> pause
             return 284;

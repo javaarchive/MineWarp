@@ -131,6 +131,9 @@ public class GameStreamSystem implements Pad.PROBE {
             action = GLFW.GLFW_REPEAT;
         }
         VirtualInputManager.keyChange(message.getInt("code"),action,calcMods(message));
+        if(action == GLFW.GLFW_PRESS && message.has("char") && message.getString("char").length() == 1){
+            VirtualInputManager.charTyped(message.getString("char").charAt(0));
+        }
     }
 
     public void processMouseButton(JSONObject message) throws JSONException {
