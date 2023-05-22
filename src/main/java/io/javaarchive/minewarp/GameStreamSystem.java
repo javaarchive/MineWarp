@@ -280,12 +280,15 @@ public class GameStreamSystem implements Pad.PROBE {
                 ? "format=BGRx" : "format=xRGB");
         pipeline = (Pipeline) Gst.parseLaunch("autovideosrc ! videoconvert ! videoscale ! "
                 + caps + " ! identity name=identity ! videoflip method=vertical-flip ! videoconvert ! " +
-                "queue ! vp8enc deadline=1 ! rtpvp8pay ! " +
+                "queue ! vp8enc name=encoder deadline=1 ! rtpvp8pay ! " +
                 "webrtcbin name=webrtcbin bundle-policy=max-bundle stun-server=stun://relay.metered.ca:80");
 
         pipeline.getElements().forEach(el -> System.out.println("Found pipeline el " + el.getName() + " " + el.getTypeName()));
 
         Element identity = pipeline.getElementByName("identity");
+        Element encoder = pipeline.getElementByName("encoder");
+        encoder.set("target-bitrate", 6000);
+        encoder.set("max-quantizer", 40);
         identity.getStaticPad("sink").addProbe(PadProbeType.BUFFER, this);
 
         // at this point I have no idea what exactly happens
